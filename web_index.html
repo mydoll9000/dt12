@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Tra cứu định mức TT12</title>
+
+<style>
+body{
+font-family:Arial;
+background:#111;
+color:white;
+padding:40px;
+}
+
+input{
+width:500px;
+padding:10px;
+font-size:18px;
+}
+
+.result{
+padding:8px;
+border-bottom:1px solid #333;
+cursor:pointer;
+}
+
+.result:hover{
+background:#222;
+}
+
+.norm{
+margin-top:20px;
+background:#222;
+padding:20px;
+}
+
+.pagination{
+margin-top:10px;
+display:flex;
+align-items:center;
+gap:10px;
+}
+
+.page-btn{
+padding:5px 10px;
+background:#222;
+border:1px solid #444;
+color:white;
+cursor:pointer;
+}
+
+.page-btn:disabled{
+opacity:0.4;
+cursor:default;
+}
+
+.page-info{
+font-size:14px;
+color:#aaa;
+}
+</style>
+
+</head>
+
+<body>
+
+    <h2>TRUNG TÂM DỰ TOÁN & ANH VĂN XÂY DỰNG ĐÀ NẴNG </h2>
+    <h3>SĐT : 0905035024 hoặc 0987368907</h3>
+    <h4>Tra cứu định mức theo TT12/2021-BXD</h4>
+
+<input id="search" placeholder="Nhập mã định mức hoặc từ khóa...">
+
+<div id="results"></div>
+
+<div id="pagination"></div>
+
+<div id="norm"></div>
+
+<script>
+
+const search = document.getElementById("search")
+const results = document.getElementById("results")
+const norm = document.getElementById("norm")
+const pagination = document.getElementById("pagination")
+
+let currentPage = 1
+const pageSize = 20
+let totalResults = 0
+
+async function performSearch(page = 1) {
+
+currentPage = page
+
+let q = search.value
+
+if(q.length < 2){
+results.innerHTML=""
+pagination.innerHTML=""
+return
+}
+
+let res = await fetch("/search?q=" + encodeURIComponent(q) + "&page=" + page)
+let data = await res.json()
+
+// API trả về: { items: [], total, page, pageSize }
+let items = data.items || []
+totalResults = data.total || 0
+
+results.innerHTML=""
+
+items.forEach(item => {
+
+let div = document.createElement("div")
+
+div.className="result"
+
+div.innerText = item.code + " - " + item.description
+
+div.onclick = () => loadNorm(item.code)
+
+results.appendChild(div)
+
+})
+
+renderPagination()
+}
+
+function renderPagination(){
+
+pagination.innerHTML=""
+
+if(totalResults <= pageSize){
+return
+}
+
+let totalPages = Math.ceil(totalResults / pageSize)
+
+let container = document.createElement("div")
+container.className = "pagination"
+
+let prevBtn = document.createElement("button")
+prevBtn.className = "page-btn"
+prevBtn.innerText = "« Trước"
+prevBtn.disabled = currentPage <= 1
+prevBtn.onclick = () => {
+if(currentPage > 1){
+performSearch(currentPage - 1)
+}
+}
+
+let nextBtn = document.createElement("button")
+nextBtn.className = "page-btn"
+nextBtn.innerText = "Sau »"
+nextBtn.disabled = currentPage >= totalPages
+nextBtn.onclick = () => {
+if(currentPage < totalPages){
+performSearch(currentPage + 1)
+}
+}
+
+let info = document.createElement("span")
+info.className = "page-info"
+info.innerText = "Trang " + currentPage + " / " + totalPages + " (Tổng " + totalResults + " kết quả)"
+
+container.appendChild(prevBtn)
+container.appendChild(nextBtn)
+container.appendChild(info)
+
+pagination.appendChild(container)
+}
+
+search.addEventListener("input", () => {
+performSearch(1)
+})
+
+async function loadNorm(code){
+
+let res = await fetch("/norm/" + code)
+
+let data = await res.json()
+
+norm.innerHTML = "<h3>"+code+"</h3>"
+
+data.forEach(r => {
+
+norm.innerHTML += "<div>"+r.resource_type+" : "+r.resource_id+" ("+r.quantity+")</div>"
+
+})
+
+}
+
+</script>
+
+</body>
+</html>
